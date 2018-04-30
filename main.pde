@@ -32,6 +32,8 @@ int[] colorCropXYWH = {240, 40, 1520, 1050};
 void setup() {   
   fullScreen(); 
   //size(1520, 1050);   
+  imageMode(CENTER);
+  
 
   // Set up the kinect
   kinect = new KinectPV2(this);   
@@ -77,7 +79,7 @@ void draw() {
 
     // blur the depth image to reduce pixel jitter.
     opencvDepth.loadImage(depthImgCropped);
-    opencvDepth.blur(24);
+    opencvDepth.blur(12);
     depthImgCropped = opencvDepth.getOutput();
 
     //find nearest person;
@@ -102,7 +104,7 @@ void draw() {
         int yP = floor(map(y, 0, mainImgCropped.height, 0, bodyImgCropped.height));
         PxPGetPixel(xP, yP, bodyImgCropped.pixels, bodyImgCropped.width);               // get the RGB of the image (Bart)
         boolean isBody = false;
-        if (R != 0) {  
+        if ((R+G+B) > 10) {  
           isBody = true;
         }
 
@@ -123,22 +125,31 @@ void draw() {
 
   // Draw it
   mainImgCropped.updatePixels();
+  translate(width/2, height/2);
+  scale(1.25);
   image(mainImgCropped, 0, 0);
+  
 
   // Codes for debugging and calibrating
   //image(mainImgCropped, colorCropXYWH[0], colorCropXYWH[1]);
   //pushStyle();
   //tint(255, 100);
   //image(bodyImgCropped, area[0], area[1],area[2],area[3]);
-  //popStyle();
-
-
+  
+  
+  //pushMatrix();
+  //pushStyle();
+  //scale(0.8);
+  //translate(-width/2, -height/2);
+  //imageMode(CORNER);
+  
+  //image(mainImgCropped, 0, 0);
   //image(bodyImgCropped, 0, 0, 400, 300);
   //image(depthImgCropped, 800, 0, 400, 300);
   //image(refImg, 400, 0, 400, 300);
 
-  //textSize(120);
-  //text(nearestP, 200, 900);
+  //popStyle();
+  //popMatrix();
 } 
 
 // try to use ref video instead of still ref image.
@@ -164,7 +175,7 @@ PImage FindFirstPerson (ArrayList<PImage> bodies) {
       for (int x = 0; x < body.width; x+=4) { 
         PxPGetPixel(x, y, body.pixels, body.width);               // get the RGB of the image (Bart)
         boolean isBody = false;
-        if ((R+G+B)/3 >= 10) {  
+        if ((R+G+B) >= 60) {  
           isBody = true;
         }
         if (isBody) {
