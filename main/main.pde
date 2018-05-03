@@ -15,6 +15,9 @@ PImage mainImg;
 PImage bodyImg;
 PImage refImg;
 
+// Create ArrayList of image to be refVideo
+ArrayList<PImage> refVideo;
+
 // Since we need to map those images by ourselves, create PImages for those mapped images.
 // Since reference image is generated from main image, no need to map it.
 PImage mainImgCropped;
