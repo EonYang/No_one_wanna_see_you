@@ -1,4 +1,5 @@
 import KinectPV2.*;
+
 KinectPV2 kinect;
 
 import gab.opencv.*;
@@ -6,6 +7,10 @@ OpenCV opencvBody;
 OpenCV opencvDepth;
 
 // Create 3 PImages for video, body and reference
+
+IndexManager indexManager = new IndexManager();
+
+
 PImage mainImg;
 PImage bodyImg;
 PImage refImg;
@@ -27,13 +32,20 @@ float range = 1.7;
 int[] area = {0, 0, 400, 300};
 int[] colorCropXYWH = {240, 40, 1520, 1050};
 
+int bodyIndex;
+int bodyIndexPrevious;
+
+int timer = 0;
+boolean bodyChanged;
+
 
 
 void setup() {   
+  println(indexManager.index);
   fullScreen(); 
   //size(1520, 1050);   
   imageMode(CENTER);
-  
+
 
   // Set up the kinect
   kinect = new KinectPV2(this);   
@@ -84,7 +96,12 @@ void draw() {
 
     //find nearest person;
     //PImage bodyImg2 = FindFirstPerson(bodyTrackList);
-    bodyImgCropped = FindFirstPerson(bodyTrackList);
+    //bodyImgCropped = FindFirstPerson(bodyTrackList);
+    
+    // change target every 5 seconds or when size gets smaller
+    indexManager.refreshEvery5s(frameCount, bodyTrackList.size());
+    indexManager.refreshWhenSizeGetsSmaller(bodyTrackList.size());
+    bodyImgCropped = getBodyByIndex(bodyTrackList, indexManager.index);
 
     //PImage bodyImg2 = (PImage)bodyTrackList.get(bodyTrackList.size() - 1);
     //bodyImgCropped.copy(bodyImg2, 0, 24, 512, 376, 0, 0, 512, 376);
@@ -128,21 +145,21 @@ void draw() {
   translate(width/2, height/2);
   scale(1.25);
   image(mainImgCropped, 0, 0);
-  
+
 
   // Codes for debugging and calibrating
   //image(mainImgCropped, colorCropXYWH[0], colorCropXYWH[1]);
   //pushStyle();
   //tint(255, 100);
   //image(bodyImgCropped, area[0], area[1],area[2],area[3]);
-  
-  
+
+
   //pushMatrix();
   //pushStyle();
   //scale(0.8);
   //translate(-width/2, -height/2);
   //imageMode(CORNER);
-  
+
   //image(mainImgCropped, 0, 0);
   //image(bodyImgCropped, 0, 0, 400, 300);
   //image(depthImgCropped, 800, 0, 400, 300);
@@ -224,6 +241,29 @@ void mousePressed() {
   //}
 }
 
+
+void getBodyIndex() {
+  ArrayList<PImage> bodyTrackList = kinect.getBodyTrackUser();
+  int bodyNum = bodyTrackList.size()-1;                            //update total body number
+  bodyIndexPrevious = bodyIndex;                                   //update previous
+  int bodyIndex = floor(random(1, bodyNum));                       //generate new body index each time
+  int timer=0;                                                     //reset timer
+}
+
+
+//every 5 seconds, look if listLength has changed, if changed, call getBodyIndex());
+
+void updateBodyHidden() {
+  //if (bodyIndex!=bodyIndexPrevious) {
+  //change the body image to hide
+  //}
+}
+
+
+
+
+
+
 // codes for calibrating
 
 //void mousePressed(){
@@ -241,21 +281,3 @@ void mousePressed() {
 //  area[3] = mouseY - area[1];
 //  println(area);
 //}
-
-
-void PxPGetPixel(int x, int y, int[] pixelArray, int pixelsWidth) {
-  int thisPixel=pixelArray[x+y*pixelsWidth];     // getting the colors as an int from the pixels[]
-  A = (thisPixel >> 24) & 0xFF;                  // we need to shift and mask to get each component alone
-  R = (thisPixel >> 16) & 0xFF;                  // this is faster than calling red(), green() , blue()
-  G = (thisPixel >> 8) & 0xFF;   
-  B = thisPixel & 0xFF;
-}
-
-
-void PxPSetPixel(int x, int y, int r, int g, int b, int a, int[] pixelArray, int pixelsWidth) {
-  a =(a << 24);                       
-  r = r << 16;                       // We are packing all 4 composents into one int
-  g = g << 8;                        // so we need to shift them to their places
-  color argb = a | r | g | b;        // binary "or" operation adds them all into one int
-  pixelArray[x+y*pixelsWidth]= argb;    // finaly we set the int with te colors into the pixels[]
-}
