@@ -1,0 +1,4 @@
+PImage[] refVideo;
+
+void StoreRefVideo () {
+}
