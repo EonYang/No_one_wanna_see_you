@@ -1,4 +1,8 @@
-PImage[] refVideo;
 
-void StoreRefVideo () {
+
+ArrayList<PImage> StoreRefVideo (PImage currentMainImage) {
+
+
+
+return Video;
 }
