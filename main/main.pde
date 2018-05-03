@@ -1,16 +1,16 @@
 import KinectPV2.*;
-
 KinectPV2 kinect;
 
 import gab.opencv.*;
 OpenCV opencvBody;
 OpenCV opencvDepth;
 
-// Create 3 PImages for video, body and reference
 
+// use indexManager to hold and change index of removed person.
 IndexManager indexManager = new IndexManager();
 
 
+// Create 3 PImages for video, body and reference
 PImage mainImg;
 PImage bodyImg;
 PImage refImg;
@@ -23,35 +23,26 @@ PImage bodyImgCropped;
 // Use depth image to separate users. 
 PImage depthImgCropped;
 
-
 int R, G, B, A; 
 float range = 1.7;
-
 
 // For calibrating.
 int[] area = {0, 0, 400, 300};
 int[] colorCropXYWH = {240, 40, 1520, 1050};
-
-int bodyIndex;
-int bodyIndexPrevious;
-
-int timer = 0;
-boolean bodyChanged;
-
-
 
 void setup() {   
   println(indexManager.index);
   fullScreen(); 
   //size(1520, 1050);   
   imageMode(CENTER);
+  frameRate(30);
 
 
   // Set up the kinect
   kinect = new KinectPV2(this);   
   kinect.enableColorImg(true);    
   kinect.enableBodyTrackImg(true);  
-  kinect.enableDepthImg(true);
+  //kinect.enableDepthImg(true);
   kinect.init();
 
   // initialize PImages
@@ -61,7 +52,7 @@ void setup() {
   refImg = createImage( colorCropXYWH[2], colorCropXYWH[3], RGB);
 
 
-  // Try to use opencv for better performance
+  // use opencv blur for better performance
   opencvBody = new OpenCV(this, 512, 376);
   opencvDepth = new OpenCV(this, 512, 376);
 
@@ -107,7 +98,6 @@ void draw() {
     //bodyImgCropped.copy(bodyImg2, 0, 24, 512, 376, 0, 0, 512, 376);
 
     // blur the body image to expand it, in order to get a better covering.
-
     opencvBody.loadImage(bodyImgCropped);
     opencvBody.blur(8);
     bodyImgCropped = opencvBody.getOutput();
@@ -153,7 +143,6 @@ void draw() {
   //tint(255, 100);
   //image(bodyImgCropped, area[0], area[1],area[2],area[3]);
 
-
   //pushMatrix();
   //pushStyle();
   //scale(0.8);
@@ -176,92 +165,12 @@ PImage[] refVideo;
 void StoreRefVideo () {
 }
 
-// function for get the nearest person depth.
-PImage FindFirstPerson (ArrayList<PImage> bodies) {
-  PImage firstPerson;
-  int fI = 0;
-  firstPerson = createImage(512, 376, RGB);
-  int nearestPoint = 255;
-  for (int i = 0; i < bodies.size(); i++) {
-    PImage body;
-    body = createImage(512, 376, RGB);
-    body.copy(bodies.get(i), 0, 24, 512, 376, 0, 0, 512, 376);
-    body.loadPixels();
-    int thisNearest = 255;
-    for (int y = 0; y < body.height; y+=4) {
-      for (int x = 0; x < body.width; x+=4) { 
-        PxPGetPixel(x, y, body.pixels, body.width);               // get the RGB of the image (Bart)
-        boolean isBody = false;
-        if ((R+G+B) >= 60) {  
-          isBody = true;
-        }
-        if (isBody) {
-          PxPGetPixel(x, y, depthImgCropped.pixels, depthImgCropped.width);
-          int depth = R;
-          if (depth < thisNearest && depth >= 40) thisNearest = depth;
-        }
-      }
-    }
-
-    // set first person = this body
-    if (thisNearest < nearestPoint) {
-      nearestPoint = thisNearest;
-      firstPerson = body;
-      fI = i;
-    }
-  }
-  //textSize(120);
-  //text(nearestPoint, 1600, 700);
-  //text(fI, 1600, 900);
-
-  //for (int i = 0; i < bodies.size(); i++) {
-  //  PImage bodyTrackImg = (PImage)bodies.get(i);
-  //  if (i <= 1) {
-  //    image(bodyTrackImg, 1520 + 240*i, 0, 160, 120);
-  //  } else if (i <= 3) {
-  //    image(bodyTrackImg, 1520 + 240*(i - 2), 120, 160, 120 );
-  //  } else if (i <= 5) {
-  //    image(bodyTrackImg, 1520 + 240*(i - 4), 240, 160, 120 );
-  //  }
-  //}
-
-  return firstPerson;
-}
 
 // When press, refresh reference image
 void mousePressed() {
   refImg.copy(mainImgCropped, 0, 0, colorCropXYWH[2], colorCropXYWH[3], 0, 0, colorCropXYWH[2], colorCropXYWH[3]);
   refImg.loadPixels();
-  //refImgPixels = new int[2073600];
-  //for (int y = 0; y < refImg.height; y++) {
-  //  for (int x = 0; x < refImg.width; x++) {  
-  //    int i = x + y* width;
-  //     refImgPixels[i] = refImg.pixels[i];  
-  //  }
-  //}
 }
-
-
-void getBodyIndex() {
-  ArrayList<PImage> bodyTrackList = kinect.getBodyTrackUser();
-  int bodyNum = bodyTrackList.size()-1;                            //update total body number
-  bodyIndexPrevious = bodyIndex;                                   //update previous
-  int bodyIndex = floor(random(1, bodyNum));                       //generate new body index each time
-  int timer=0;                                                     //reset timer
-}
-
-
-//every 5 seconds, look if listLength has changed, if changed, call getBodyIndex());
-
-void updateBodyHidden() {
-  //if (bodyIndex!=bodyIndexPrevious) {
-  //change the body image to hide
-  //}
-}
-
-
-
-
 
 
 // codes for calibrating
