@@ -16,7 +16,7 @@ PImage bodyImg;
 PImage refImg;
 
 // Create ArrayList of image to be refVideo
-ArrayList<PImage> refVideo;
+//ArrayList<PImage> refVideo;
 
 // Since we need to map those images by ourselves, create PImages for those mapped images.
 // Since reference image is generated from main image, no need to map it.
@@ -93,7 +93,7 @@ void draw() {
     //bodyImgCropped = FindFirstPerson(bodyTrackList);
     
     // change target every 5 seconds or when size gets smaller
-    indexManager.refreshEvery5s(frameCount, bodyTrackList.size());
+    indexManager.refreshEvery5s(bodyTrackList.size());
     indexManager.refreshWhenSizeGetsSmaller(bodyTrackList.size());
     bodyImgCropped = getBodyByIndex(bodyTrackList, indexManager.index);
 
@@ -135,9 +135,9 @@ void draw() {
 
   // Draw it
   mainImgCropped.updatePixels();
-  translate(width/2, height/2);
-  scale(1.25);
-  image(mainImgCropped, 0, 0);
+  //translate(width/2, height/2);
+  //scale(1.25);
+  image(mainImgCropped, width/2, height/2);
 
 
   // Codes for debugging and calibrating
@@ -159,6 +159,10 @@ void draw() {
 
   //popStyle();
   //popMatrix();
+  
+  textSize(120);
+  text(indexManager.refreshCount, 400, 400);
+  text(frameRate, 400, 200);
 } 
 
 // try to use ref video instead of still ref image.

@@ -1,21 +1,30 @@
 class IndexManager {
 
   int index;
+  int refreshCount;
 
   IndexManager ( ) {
     index = 0;
+    refreshCount = 0;
   }
 
   void _update(int currentSize) {
-    index = floor(random(0, (currentSize - 1)));
+    index = floor(random(0, (currentSize )));
   }
   
-  void refreshEvery5s (int frameCount, int currentSize) {
-    if ((frameCount % 150) == 5) this._update(currentSize);
+  void refreshEvery5s (int currentSize) {
+    if ((frameCount % 90) == 0) {
+      this._update(currentSize);
+    //println(frameCount);
+    //println(index);
+    refreshCount ++;
+    }
   }
   
   void refreshWhenSizeGetsSmaller(int currentSize ){
-    if (index > (currentSize -1 )) this._update(currentSize);
+    if (index > (currentSize -1 )) {
+      this._update(currentSize);
+      refreshCount ++;}
   
   }
   
