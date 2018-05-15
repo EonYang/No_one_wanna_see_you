@@ -1,13 +1,34 @@
+OpenCV opencvDepth;
+
+
+
+//find nearest person;
+//PImage bodyImg2 = FindFirstPerson(bodyTrackList);
+//bodyImgCropped = FindFirstPerson(bodyTrackList);
+
+
+
 // function for get the nearest person depth.
-PImage FindFirstPerson (ArrayList<PImage> bodies) {
+PImage FindFirstPerson (ArrayList<PImage> kinectBodyList, PImage kinectDepthImg) {
+  PImage depthImgCropped;
+  depthImgCropped = createImage(512, 376, RGB);
+
+  //initialize depthimage, and map it. 
+  depthImgCropped.copy(kinectDepthImg, 0, 24, 512, 376, 0, 0, 512, 376);
+
+  // blur the depth image to reduce pixel jitter.
+  opencvDepth.loadImage(depthImgCropped);
+  opencvDepth.blur(12);
+  depthImgCropped = opencvDepth.getOutput();
+
   PImage firstPerson;
   int fI = 0;
   firstPerson = createImage(512, 376, RGB);
   int nearestPoint = 255;
-  for (int i = 0; i < bodies.size(); i++) {
+  for (int i = 0; i < kinectBodyList.size(); i++) {
     PImage body;
     body = createImage(512, 376, RGB);
-    body.copy(bodies.get(i), 0, 24, 512, 376, 0, 0, 512, 376);
+    body.copy(kinectBodyList.get(i), 0, 24, 512, 376, 0, 0, 512, 376);
     body.loadPixels();
     int thisNearest = 255;
     for (int y = 0; y < body.height; y+=4) {

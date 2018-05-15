@@ -2,12 +2,14 @@ import KinectPV2.*;
 KinectPV2 kinect;
 
 import gab.opencv.*;
-OpenCV opencvBody;
-OpenCV opencvDepth;
+import spout.*;
 
+PGraphics canvas;
+Spout sender;
 
 // use indexManager to hold and change index of removed person.
 IndexManager indexManager = new IndexManager();
+RefVideoManager alfredo = new RefVideoManager();
 
 
 // Create 3 PImages for video, body and reference
@@ -23,22 +25,24 @@ PImage refImg;
 PImage mainImgCropped;
 PImage bodyImgCropped;
 
-// Use depth image to separate users. 
-PImage depthImgCropped;
 
 int R, G, B, A; 
-float range = 1.7;
 
 // For calibrating.
 int[] area = {0, 0, 400, 300};
-int[] colorCropXYWH = {240, 40, 1520, 1050};
+int[] colorCropXYWH = {230, 20, 1520, 1050};
 
 void setup() {   
-  println(indexManager.index);
-  fullScreen(); 
-  //size(1520, 1050);   
+  //fullScreen(); 
+
+  size(1520, 1050, P3D); 
+  canvas = createGraphics(1520, 1050, P3D);
+  sender = new Spout(this);
+  sender.createSender("no one wanna see you", 1520, 1050);
+
   imageMode(CENTER);
   frameRate(30);
+
 
 
   // Set up the kinect
@@ -50,15 +54,8 @@ void setup() {
 
   // initialize PImages
   bodyImgCropped = createImage(512, 376, RGB);
-  depthImgCropped = createImage(512, 376, RGB);
   mainImgCropped = createImage( colorCropXYWH[2], colorCropXYWH[3], RGB);
   refImg = createImage( colorCropXYWH[2], colorCropXYWH[3], RGB);
-
-
-  // use opencv blur for better performance
-  opencvBody = new OpenCV(this, 512, 376);
-  opencvDepth = new OpenCV(this, 512, 376);
-
 
   // Initialize reference image
   mainImg = kinect.getColorImage();
@@ -77,101 +74,42 @@ void draw() {
   //obtain an ArrayList of the users currently being tracked
   ArrayList<PImage> bodyTrackList = kinect.getBodyTrackUser();
 
-  //iterate through all the users
-  if (bodyTrackList.size() != 0) {
+  int tempIndex = 0;
 
-    // initialize depthimage, and map it. 
-    depthImgCropped.copy(kinect.getDepthImage(), 0, 24, 512, 376, 0, 0, 512, 376);
+  //iterate through all the bodies
+  if (bodyTrackList.size() == 0) {
+    alfredo.autoStoreNewFrame(mainImgCropped);
+  } else {
 
-    // blur the depth image to reduce pixel jitter.
-    opencvDepth.loadImage(depthImgCropped);
-    opencvDepth.blur(12);
-    depthImgCropped = opencvDepth.getOutput();
+    if (alfredo.refImages[alfredo.frameLimit-1] != null) {
+      refImg = alfredo.getOneFrame();
 
-    //find nearest person;
-    //PImage bodyImg2 = FindFirstPerson(bodyTrackList);
-    //bodyImgCropped = FindFirstPerson(bodyTrackList);
-    
-    // change target every 5 seconds or when size gets smaller
-    indexManager.refreshEvery5s(bodyTrackList.size());
-    indexManager.refreshWhenSizeGetsSmaller(bodyTrackList.size());
-    bodyImgCropped = getBodyByIndex(bodyTrackList, indexManager.index);
+      indexManager.updateIndex();
+      tempIndex = indexManager.getIndex() % bodyTrackList.size();
 
-    //PImage bodyImg2 = (PImage)bodyTrackList.get(bodyTrackList.size() - 1);
-    //bodyImgCropped.copy(bodyImg2, 0, 24, 512, 376, 0, 0, 512, 376);
+      bodyImgCropped.copy(bodyTrackList.get(tempIndex), 0, 24, 512, 376, 0, 0, 512, 376);
 
-    // blur the body image to expand it, in order to get a better covering.
-    opencvBody.loadImage(bodyImgCropped);
-    opencvBody.blur(8);
-    bodyImgCropped = opencvBody.getOutput();
+      // blur the body image to expand it, in order to get a better covering, check openCVBlur tab for more.
+      bodyImgCropped = openCVBlur(bodyImgCropped, 16);
 
-    // Main loop
-    for (int y = 0; y < mainImgCropped.height; y++) {
-      for (int x = 0; x < mainImgCropped.width; x++) {  
-
-        // get the color of this pixel, see if this pixel belong to a body
-        int xP = floor(map(x, 0, mainImgCropped.width, 0, bodyImgCropped.width));
-        int yP = floor(map(y, 0, mainImgCropped.height, 0, bodyImgCropped.height));
-        PxPGetPixel(xP, yP, bodyImgCropped.pixels, bodyImgCropped.width);               // get the RGB of the image (Bart)
-        boolean isBody = false;
-        if ((R+G+B) > 10) {  
-          isBody = true;
-        }
-
-        // get the depth of this pixel, see if it's in range
-        //PxPGetPixel(xP, yP, depthImgCropped.pixels, depthImgCropped.width); 
-        //int depth = R;
-
-        // if (is body && in range), substitute the pixel.
-        //if (isBody == true && ((nearestP < depth && depth < nearestP * range) || depth < 10)) {
-        if (isBody == true ) {
-          int i = x + y* mainImgCropped.width;
-          mainImgCropped.pixels[i] = refImg.pixels[i];
-        }
-      }
+      mainImgCropped = removePerson(mainImgCropped, bodyImgCropped, refImg);
     }
   }
-  //bodyImg = kinect.getBodyTrackImage();
-
   // Draw it
-  mainImgCropped.updatePixels();
+  //mainImgCropped.updatePixels();
   //translate(width/2, height/2);
-  //scale(1.25);
-  image(mainImgCropped, width/2, height/2);
-
-
-  // Codes for debugging and calibrating
-  //image(mainImgCropped, colorCropXYWH[0], colorCropXYWH[1]);
-  //pushStyle();
-  //tint(255, 100);
-  //image(bodyImgCropped, area[0], area[1],area[2],area[3]);
-
-  //pushMatrix();
-  //pushStyle();
-  //scale(0.8);
-  //translate(-width/2, -height/2);
-  //imageMode(CORNER);
-
+  ////scale(1.25);
   //image(mainImgCropped, 0, 0);
-  //image(bodyImgCropped, 0, 0, 400, 300);
-  //image(depthImgCropped, 800, 0, 400, 300);
-  //image(refImg, 400, 0, 400, 300);
 
-  //popStyle();
-  //popMatrix();
-  
-  textSize(120);
-  text(indexManager.refreshCount, 400, 400);
-  text(frameRate, 400, 200);
+textSize(60);
+    text(alfredo.refreshed, 0, 100);
+  // draw on canvas and send to isadora
+  canvas.beginDraw();
+  canvas.lights();
+  canvas.image(mainImgCropped, 0, 0);
+  canvas.endDraw();
+  sender.sendTexture(canvas);
 } 
-
-// try to use ref video instead of still ref image.
-
-PImage[] refVideo;
-
-void StoreRefVideo () {
-}
-
 
 // When press, refresh reference image
 void mousePressed() {
@@ -179,21 +117,8 @@ void mousePressed() {
   refImg.loadPixels();
 }
 
-
-// codes for calibrating
-
-//void mousePressed(){
-//  area[0] = mouseX;
-//  area[1] = mouseY;
-//}
-
-//void mouseDragged(){
-//  area[2] = mouseX - area[0];
-//  area[3] = mouseY - area[1];
-//}
-
-//void mouseReleased(){
-//  area[2] = mouseX - area[0];
-//  area[3] = mouseY - area[1];
-//  println(area);
-//}
+void keyPressed() {
+  if (key == 'z') {
+    alfredo.storeNewFreame(mainImgCropped);
+  }
+}
